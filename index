@@ -1,0 +1,757 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SpoofForge — AI Prompt Builder</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0A0A0F; color: #F0EDE8; font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+  a { color: inherit; text-decoration: none; }
+  button { cursor: pointer; font-family: inherit; }
+  input, textarea, select { font-family: inherit; }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #0A0A0F; }
+  ::-webkit-scrollbar-thumb { background: #2A2A3E; border-radius: 4px; }
+
+  /* Layout */
+  #app { max-width: 480px; margin: 0 auto; }
+
+  /* Header */
+  .header {
+    background: #0A0A0F; border-bottom: 1px solid #1A1A2E;
+    padding: 14px 16px; position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { display: flex; align-items: center; gap: 8px; }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: linear-gradient(135deg,#FF4D4D,#FF9900);
+    border-radius: 7px; display: flex; align-items: center;
+    justify-content: center; font-size: 14px;
+  }
+  .logo-text { font-weight: 800; font-size: 17px; letter-spacing: -0.5px; }
+  .logo-text span { color: #FF6B35; }
+  .header-sub { font-size: 12px; color: #555; }
+
+  /* Steps */
+  .steps {
+    display: flex; padding: 12px 16px; gap: 6px;
+    overflow-x: auto; border-bottom: 1px solid #1A1A2E;
+  }
+  .steps::-webkit-scrollbar { display: none; }
+  .step-pill {
+    display: flex; align-items: center; gap: 5px;
+    padding: 6px 12px; border-radius: 20px;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+    flex-shrink: 0; border: 1px solid #1A1A2E;
+    background: #111; color: #444;
+  }
+  .step-pill.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
+  .step-pill.done { background: #1A2E1A; color: #4ADE80; border-color: #2A4A2A; cursor: pointer; }
+
+  /* Content */
+  .content { padding: 20px 16px 80px; }
+
+  /* Screen */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Headings */
+  h1 { font-size: 26px; font-weight: 900; letter-spacing: -1px; line-height: 1.15; margin-bottom: 8px; }
+  h1 span { color: #FF6B35; }
+  .subtitle { color: #666; font-size: 14px; line-height: 1.6; margin-bottom: 24px; }
+
+  /* Cards */
+  .card {
+    background: #0D0D18; border: 1px solid #1A1A2E;
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .card-label {
+    font-size: 11px; color: #FF6B35; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 8px;
+  }
+  .card-label.grey { color: #888; }
+  .card-label.green { color: #4ADE80; }
+
+  /* Tip grid */
+  .tip-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+  .tip-card { background: #0D0D18; border: 1px solid #1A1A2E; border-radius: 12px; padding: 14px; }
+  .tip-icon { font-size: 20px; margin-bottom: 6px; }
+  .tip-title { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .tip-text { font-size: 12px; color: #555; line-height: 1.5; }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 16px; border-radius: 10px; border: none;
+    font-size: 14px; font-weight: 600; color: #fff;
+  }
+  .btn-primary { background: #FF6B35; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-full { width: 100%; padding: 13px; font-size: 15px; }
+  .btn-ghost { background: transparent; border: 1px solid #1A1A2E; color: #666; }
+  .btn-ghost:hover { border-color: #333; color: #999; }
+  .btn-copied { background: #1A3A1A; border: 1px solid #4ADE80; color: #4ADE80; }
+
+  /* Textarea */
+  .subject-area {
+    width: 100%; background: transparent; border: none;
+    color: #F0EDE8; font-size: 15px; resize: none; outline: none;
+    line-height: 1.6;
+  }
+
+  /* Input */
+  .text-input {
+    width: 100%; background: #0D0D18; border: 1px solid #1A1A2E;
+    border-radius: 8px; padding: 11px 14px; color: #F0EDE8;
+    font-size: 14px; outline: none;
+  }
+  .text-input:focus { border-color: #FF6B35; }
+  .field-label { font-size: 12px; color: #666; display: block; margin-bottom: 5px; }
+
+  /* Category tabs */
+  .cat-tabs { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+  .cat-tabs::-webkit-scrollbar { display: none; }
+  .cat-tab {
+    padding: 7px 14px; border-radius: 10px; font-size: 12px;
+    font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    border: 1px solid #1A1A2E; background: #111; color: #777;
+  }
+  .cat-tab.active { background: #FF6B35; color: #fff; border-color: #FF6B35; }
+
+  /* Filter chips */
+  .filter-chips { display: flex; gap: 6px; overflow-x: auto; margin-bottom: 14px; padding-bottom: 2px; }
+  .filter-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    padding: 5px 12px; border-radius: 20px; font-size: 12px;
+    font-weight: 600; white-space: nowrap; flex-shrink: 0;
+    border: 1px solid #1A1A2E; background: transparent; color: #555;
+  }
+  .chip.active { background: #1A2240; border-color: #4488FF; color: #88AAFF; }
+
+  /* Presentation mode */
+  .pmode-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .pmode-btn {
+    padding: 7px 14px; border-radius: 10px; font-size: 13px;
+    font-weight: 600; border: 1px solid #1A1A2E;
+    background: transparent; color: #666;
+  }
+  .pmode-btn.active { background: #FF6B3322; border-color: #FF6B35; color: #FF6B35; }
+
+  /* Template grid */
+  .tmpl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .tmpl-card {
+    background: #0D0D18; border: 1px solid #1A1A2E;
+    border-radius: 12px; padding: 14px; cursor: pointer;
+    position: relative; transition: border-color 0.15s;
+  }
+  .tmpl-card:hover { border-color: #333; }
+  .tmpl-card.selected { border: 2px solid #FF6B35; }
+  .tmpl-check {
+    position: absolute; top: 8px; right: 8px;
+    background: #FF6B35; border-radius: 50%;
+    width: 18px; height: 18px; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tmpl-icon { font-size: 24px; margin-bottom: 8px; }
+  .tmpl-name { font-weight: 700; font-size: 13px; line-height: 1.3; margin-bottom: 4px; }
+  .tmpl-meta { font-size: 11px; color: #555; }
+
+  /* Selected preview */
+  .selected-preview {
+    background: #0D1A0D; border: 1px solid #1A3A1A;
+    border-radius: 10px; padding: 12px; margin-top: 16px; margin-bottom: 12px;
+  }
+  .selected-preview .name { font-size: 11px; color: #4ADE80; font-weight: 700; margin-bottom: 4px; }
+  .selected-preview .style { font-size: 12px; color: #666; line-height: 1.5; }
+
+  /* Warning */
+  .warning {
+    background: #FF6B3511; border: 1px solid #FF6B3533;
+    border-radius: 8px; padding: 8px 12px; font-size: 12px;
+    color: #FF9060; margin-bottom: 14px;
+  }
+
+  /* Range */
+  .range-row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .range-label { font-size: 11px; color: #888; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .range-val { font-size: 13px; color: #FF6B35; font-weight: 700; }
+  input[type=range] { width: 100%; accent-color: #FF6B35; }
+  .range-hints { display: flex; justify-content: space-between; font-size: 11px; color: #444; margin-top: 4px; }
+
+  /* Subject recap */
+  .subject-recap {
+    background: #0D0D18; border: 1px solid #1A1A2E;
+    border-radius: 10px; padding: 12px; margin-bottom: 16px;
+  }
+  .subject-recap .label { font-size: 11px; color: #888; font-weight: 700; margin-bottom: 4px; }
+  .subject-recap .text { font-size: 13px; color: #AAA; line-height: 1.5; }
+  .edit-link { background: none; border: none; color: #FF6B35; font-size: 12px; padding: 4px 0; margin-top: 4px; cursor: pointer; display: block; }
+
+  /* Prompt box */
+  .prompt-box {
+    background: #0D0D18; border: 1px solid #FF6B3555;
+    border-radius: 14px; padding: 16px; margin-bottom: 14px;
+  }
+  .prompt-text { font-size: 14px; line-height: 1.7; color: #DDD; user-select: all; }
+
+  /* AI tools */
+  .ai-section-label { font-size: 11px; font-weight: 700; margin-bottom: 10px; }
+  .ai-section-label.free { color: #4ADE80; }
+  .ai-section-label.paid { color: #888; }
+  .ai-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+  .ai-item {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #0D0D18; border: 1px solid #1A1A2E;
+    border-radius: 10px; padding: 12px 14px;
+    text-decoration: none; color: #F0EDE8;
+    transition: border-color 0.15s;
+  }
+  .ai-item:hover { border-color: #333; }
+  .ai-item-left { display: flex; align-items: center; gap: 10px; }
+  .ai-icon { font-size: 20px; }
+  .ai-name { font-weight: 600; font-size: 14px; }
+  .ai-note { font-size: 11px; }
+  .ai-note.free { color: #4ADE80; }
+  .ai-note.paid { color: #888; }
+  .ai-arrow { font-size: 16px; color: #555; }
+
+  /* Divider */
+  .divider { height: 1px; background: #1A1A2E; margin: 20px 0; }
+
+  /* Result header */
+  .result-header { text-align: center; margin-bottom: 24px; }
+  .result-header .emoji { font-size: 40px; margin-bottom: 8px; }
+  .result-header h2 { font-size: 22px; font-weight: 900; margin-bottom: 6px; }
+  .result-header p { color: #555; font-size: 13px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">
+      <div class="logo-icon">🎭</div>
+      <div class="logo-text">Spoof<span>Forge</span></div>
+    </div>
+    <div class="header-sub">AI Prompt Builder</div>
+  </div>
+
+  <!-- Steps -->
+  <div class="steps" id="stepsBar">
+    <div class="step-pill active" data-step="0" onclick="goStep(0)">✏️ Describe</div>
+    <div class="step-pill" data-step="1" onclick="goStep(1)">🎯 Template</div>
+    <div class="step-pill" data-step="2" onclick="goStep(2)">🎨 Customize</div>
+    <div class="step-pill" data-step="3" onclick="goStep(3)">🚀 Get Prompt</div>
+  </div>
+
+  <div class="content">
+
+    <!-- ── STEP 0: Describe ── -->
+    <div class="screen active" id="screen-0">
+      <h1>Drop your face.<br><span>Own the legend.</span></h1>
+      <p class="subtitle">SpoofForge builds the perfect AI image prompt. Take it to ChatGPT, Gemini, Ideogram — whoever you like — and generate the image there.</p>
+
+      <div class="card">
+        <span class="card-label">Describe your subject</span>
+        <textarea class="subject-area" id="subjectDesc" rows="4"
+          placeholder="e.g. A man in his 40s with a beard and curly hair, wearing a leather jacket, confident expression..."></textarea>
+      </div>
+      <p style="font-size:12px;color:#444;margin-bottom:24px">💡 Tip: The more detail — skin tone, clothing, expression, age — the better the AI places your subject.</p>
+
+      <div class="tip-grid">
+        <div class="tip-card"><div class="tip-icon">✏️</div><div class="tip-title">Describe first</div><div class="tip-text">No upload needed. Just describe your subject in words.</div></div>
+        <div class="tip-card"><div class="tip-icon">🤖</div><div class="tip-title">Any AI image tool</div><div class="tip-text">Take your prompt to ChatGPT, Gemini, Ideogram, Leonardo & more.</div></div>
+        <div class="tip-card"><div class="tip-icon">🎭</div><div class="tip-title">Style-safe</div><div class="tip-text">Prompts reference visual style, not copyrighted assets.</div></div>
+        <div class="tip-card"><div class="tip-icon">📐</div><div class="tip-title">Multiple formats</div><div class="tip-text">Choose poster, box art, magazine spread & more.</div></div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="goStep(1)">Pick a Template →</button>
+    </div>
+
+    <!-- ── STEP 1: Template ── -->
+    <div class="screen" id="screen-1">
+      <div class="cat-tabs" id="catTabs"></div>
+      <div id="catWarning" class="warning" style="display:none"></div>
+      <div id="pmodeRow" class="pmode-row" style="display:none"></div>
+      <div id="brandFilter" class="filter-chips" style="display:none"></div>
+      <div class="tmpl-grid" id="tmplGrid"></div>
+      <div id="selectedPreview" style="display:none">
+        <div class="selected-preview">
+          <div class="name" id="previewName"></div>
+          <div class="style" id="previewStyle"></div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="goStep(2)">Customize →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Customize ── -->
+    <div class="screen" id="screen-2">
+      <div class="card" id="customizeHeader"></div>
+
+      <div style="margin-bottom:20px">
+        <span class="card-label grey" style="margin-bottom:12px;display:block">Custom Text</span>
+        <div style="margin-bottom:12px">
+          <label class="field-label">Name / Title</label>
+          <input class="text-input" id="customName" type="text" placeholder="Your name or a made-up title" />
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="field-label">Tagline</label>
+          <input class="text-input" id="customTagline" type="text" placeholder="e.g. One man. One destiny." />
+        </div>
+        <div style="margin-bottom:12px">
+          <label class="field-label">Subtitle / Credit</label>
+          <input class="text-input" id="customSubtitle" type="text" placeholder="e.g. A film by... / Vol. 3" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:20px">
+        <div class="range-row">
+          <span class="range-label">Style Intensity</span>
+          <span class="range-val" id="intensityVal">80%</span>
+        </div>
+        <input type="range" id="styleIntensity" min="20" max="100" value="80" oninput="document.getElementById('intensityVal').textContent=this.value+'%'" />
+        <div class="range-hints"><span>Subtle nod</span><span>Full transformation</span></div>
+      </div>
+
+      <div class="subject-recap" id="subjectRecap" style="display:none">
+        <div class="label">YOUR SUBJECT</div>
+        <div class="text" id="subjectRecapText"></div>
+        <button class="edit-link" onclick="goStep(0)">Edit ✏️</button>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="generatePrompt()">Generate Prompt 🚀</button>
+    </div>
+
+    <!-- ── STEP 3: Get Prompt ── -->
+    <div class="screen" id="screen-3">
+      <div class="result-header">
+        <div class="emoji">🚀</div>
+        <h2>Your prompt is ready.</h2>
+        <p>Copy it and paste into your AI image generator of choice.</p>
+      </div>
+
+      <div class="prompt-box">
+        <span class="card-label">AI Image Prompt</span>
+        <p class="prompt-text" id="promptOutput"></p>
+      </div>
+
+      <button class="btn btn-full" id="copyBtn" onclick="copyPrompt()" style="background:#FF6B35;margin-bottom:24px">📋 Copy Prompt</button>
+
+      <div>
+        <span class="card-label grey" style="margin-bottom:14px;display:block">Open in an AI Image Tool</span>
+        <div class="ai-section-label free">🟢 FREE / FREE DAILY CREDITS</div>
+        <div class="ai-list" id="freeAiList"></div>
+        <div class="ai-section-label paid">💳 PAID / SUBSCRIPTION</div>
+        <div class="ai-list" id="paidAiList"></div>
+      </div>
+
+      <button class="btn btn-ghost btn-full" onclick="resetAll()" style="margin-top:8px">✦ Make another spoof</button>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const AI_TOOLS = [
+  { id:"chatgpt",    name:"ChatGPT",       url:"https://chat.openai.com",               icon:"🤖", free:false, note:"DALL·E 3 (paid)" },
+  { id:"gemini",     name:"Gemini",         url:"https://gemini.google.com",             icon:"♊",  free:true,  note:"Free daily limit" },
+  { id:"copilot",    name:"Copilot",        url:"https://copilot.microsoft.com",         icon:"🪟", free:true,  note:"Free via Bing" },
+  { id:"ideogram",   name:"Ideogram",       url:"https://ideogram.ai",                   icon:"🎨", free:true,  note:"Free daily credits" },
+  { id:"leonardo",   name:"Leonardo.Ai",    url:"https://app.leonardo.ai",               icon:"🦁", free:true,  note:"150 free tokens/day" },
+  { id:"adobe",      name:"Adobe Firefly",  url:"https://firefly.adobe.com",             icon:"🔥", free:true,  note:"Free generative credits" },
+  { id:"playground", name:"Playground",     url:"https://playground.com",                icon:"🛝", free:true,  note:"Free daily limit" },
+  { id:"nightcafe",  name:"NightCafe",      url:"https://creator.nightcafe.studio",      icon:"🌙", free:true,  note:"Free daily credits" },
+  { id:"canva",      name:"Canva AI",       url:"https://canva.com",                     icon:"🖼️",free:true,  note:"Free tier available" },
+  { id:"grok",       name:"Grok",           url:"https://x.com/i/grok",                  icon:"𝕏",  free:false, note:"X Premium" },
+];
+
+const CATEGORIES = [
+  {
+    id:"movies", label:"Movie Posters", icon:"🎬",
+    note:"Style-inspired compositions, not exact reproductions",
+    templates:[
+      { id:"jaws",        name:"Jaws",           year:"1975", style:"Horror thriller — lone figure above dark water, massive threat below, minimal type" },
+      { id:"titanic",     name:"Titanic",         year:"1997", style:"Epic romance — couple at ship bow, ocean sunset, sweeping gold typography" },
+      { id:"godfather",   name:"The Godfather",   year:"1972", style:"Crime drama — shadowy portrait, puppet strings overhead, dark crimson palette" },
+      { id:"scarface",    name:"Scarface",         year:"1983", style:"Crime — subject in white suit against city skyline, bold gold condensed title" },
+      { id:"matrix",      name:"The Matrix",       year:"1999", style:"Sci-fi — green digital rain, reflective sunglasses, black trench coat, cold tone" },
+      { id:"topgun",      name:"Top Gun",           year:"1986", style:"Action — aviator jacket, jet silhouette, warm sunset sky, stencil military fonts" },
+      { id:"starwars",    name:"Star Wars",         year:"1977", style:"Space epic — lightsaber glow, twin moons, classic painted illustration look" },
+      { id:"pulpfiction", name:"Pulp Fiction",      year:"1994", style:"Crime — bold retro pulp paperback illustration, cigarette, vintage noir palette" },
+      { id:"rocky",       name:"Rocky",             year:"1976", style:"Sports drama — raised fists, stadium lights, triumphant pose, bold block type" },
+      { id:"alien",       name:"Alien",             year:"1979", style:"Sci-fi horror — cracked egg, dark space, glowing slit, cold blue-green tones" },
+      { id:"jurassic",    name:"Jurassic Park",     year:"1993", style:"Adventure — skeleton silhouette, amber fossil tones, jungle atmosphere" },
+      { id:"indiana",     name:"Indiana Jones",     year:"1981", style:"Adventure — fedora, whip, ancient temple, warm gold archaeological palette" },
+    ]
+  },
+  {
+    id:"brands", label:"Famous Brands", icon:"🥤",
+    note:"Spoof / parody use — visual style homage only",
+    subCategories:["Beverages","Snacks","Fast Food","Candy"],
+    templates:[
+      { id:"coca_cola",   name:"Coca‑Cola",     cat:"Beverages", style:"Iconic red & white script, contour bottle or can, festive or vintage ad style" },
+      { id:"pepsi",       name:"Pepsi",          cat:"Beverages", style:"Bold blue/red globe, modern or retro can, pop-art energy" },
+      { id:"mtn_dew",     name:"Mountain Dew",   cat:"Beverages", style:"Neon green extreme sports energy, dew drop typography, radical youth culture" },
+      { id:"sprite",      name:"Sprite",          cat:"Beverages", style:"Clean green & white, lemon-lime droplets, refreshing summer vibe" },
+      { id:"drpepper",    name:"Dr Pepper",       cat:"Beverages", style:"Maroon & white, vintage pharmacy soda fountain, 23 flavors" },
+      { id:"redbull",     name:"Red Bull",        cat:"Beverages", style:"Silver & blue can, two bulls charging, bold action energy" },
+      { id:"gatorade",    name:"Gatorade",        cat:"Beverages", style:"Lightning bolt logo, neon sports colors, athlete sweat & grit" },
+      { id:"snapple",     name:"Snapple",          cat:"Beverages", style:"Tea bottle, colorful fun label, Best Stuff on Earth tagline" },
+      { id:"budweiser",   name:"Budweiser",        cat:"Beverages", style:"King of Beers, red bowtie label, Clydesdales, patriotic Americana" },
+      { id:"heineken",    name:"Heineken",          cat:"Beverages", style:"Green bottle, red star, clean European premium lager design" },
+      { id:"doritos",     name:"Doritos",           cat:"Snacks", style:"Bold triangle logo, black bag, extreme flavor burst, edgy youth culture" },
+      { id:"lays",        name:"Lay's",             cat:"Snacks", style:"Sunshine yellow bag, wavy chip, warm potato field photography" },
+      { id:"pringles",    name:"Pringles",          cat:"Snacks", style:"Mr. P mustachio mascot, cylindrical can, clean pop colors" },
+      { id:"cheetos",     name:"Cheetos",           cat:"Snacks", style:"Chester Cheetah mascot, orange dust explosion, Not Easy Being Cheesy" },
+      { id:"fritos",      name:"Fritos",            cat:"Snacks", style:"Retro cowboy fun, corn chip crunch, bright red & yellow" },
+      { id:"ruffles",     name:"Ruffles",           cat:"Snacks", style:"Ridge-cut chip, bold blue, Ruffles Have Ridges, hearty snack energy" },
+      { id:"mcdonalds",   name:"McDonald's",        cat:"Fast Food", style:"Golden arches, red & yellow, happy family fast food American classic" },
+      { id:"kfc",         name:"KFC",               cat:"Fast Food", style:"Colonel Sanders portrait, red & white striped bucket, finger-lickin good" },
+      { id:"burgerking",  name:"Burger King",       cat:"Fast Food", style:"Retro flame-grilled bun logo, bold orange, Have it Your Way" },
+      { id:"tacobell",    name:"Taco Bell",          cat:"Fast Food", style:"Purple & pink gradient, bell icon, Think Outside the Bun" },
+      { id:"snickers",    name:"Snickers",           cat:"Candy", style:"Brown & gold nougat cross-section, You're Not You When You're Hungry" },
+      { id:"skittles",    name:"Skittles",           cat:"Candy", style:"Rainbow burst, Taste the Rainbow, colorful candy explosion" },
+      { id:"reeses",      name:"Reese's",            cat:"Candy", style:"Orange & brown peanut butter cup, two great tastes together" },
+      { id:"kitkat",      name:"Kit Kat",            cat:"Candy", style:"Red wrapper, chocolate break snap, Have a Break tagline" },
+      { id:"mms",         name:"M&Ms",               cat:"Candy", style:"Colorful characters, melts in your mouth not in your hands" },
+    ]
+  },
+  {
+    id:"cartridges", label:"Game Cartridges & Boxes", icon:"🕹️",
+    note:"Style templates — your name/game title on them",
+    presentationModes:["Cartridge","Box Art","Magazine Spread"],
+    templates:[
+      { id:"nes",          name:"NES",              maker:"Nintendo", era:"8-bit",    year:"1985", style:"Gray cartridge, black label, bold Nintendo font, pixel art cover" },
+      { id:"snes",         name:"Super NES",        maker:"Nintendo", era:"16-bit",   year:"1990", style:"Purple/gray cart, SNES label style, rendered 3D-ish cover art" },
+      { id:"n64",          name:"Nintendo 64",      maker:"Nintendo", era:"64-bit",   year:"1996", style:"Tall gray cart, N64 logo, colorful 3D rendered cover" },
+      { id:"gameboy",      name:"Game Boy",         maker:"Nintendo", era:"Handheld", year:"1989", style:"Small black cart, dot-matrix Game Boy label, pixel icon" },
+      { id:"gba",          name:"Game Boy Advance", maker:"Nintendo", era:"Handheld", year:"2001", style:"Tiny wide cart, GBA label, illustrated cover art" },
+      { id:"genesis",      name:"Sega Genesis",     maker:"Sega",     era:"16-bit",   year:"1988", style:"Black cart, red Sega stripe, bold Genesis box art style" },
+      { id:"gamegear",     name:"Game Gear",        maker:"Sega",     era:"Handheld", year:"1990", style:"Small cart, Sega Game Gear logo, colorful label" },
+      { id:"saturn",       name:"Sega Saturn",      maker:"Sega",     era:"CD",       year:"1994", style:"CD jewel case, Saturn ring logo, Japanese game art style" },
+      { id:"atari2600",    name:"Atari 2600",       maker:"Atari",    era:"Retro",    year:"1977", style:"Black cart, wood grain console, painted illustrated label art" },
+      { id:"atari5200",    name:"Atari 5200",       maker:"Atari",    era:"Retro",    year:"1982", style:"Large black cart, silver Atari label, photographic box art" },
+      { id:"jaguar",       name:"Atari Jaguar",     maker:"Atari",    era:"64-bit",   year:"1993", style:"Unusual cart shape, jaguar logo, early 3D rendered cover" },
+      { id:"turbografx",   name:"TurboGrafx-16",   maker:"NEC",      era:"16-bit",   year:"1987", style:"HuCard credit-card chip, TG16 logo, colorful anime-influenced art" },
+      { id:"neogeo",       name:"Neo Geo AES",      maker:"SNK",      era:"Arcade",   year:"1990", style:"Large luxury cart, gold Neo Geo logo, arcade-quality illustrated art" },
+      { id:"vectrex",      name:"Vectrex",          maker:"GCE",      era:"Retro",    year:"1982", style:"Unique overlay card, vector art, minimalist black & white" },
+      { id:"colecovision", name:"ColecoVision",     maker:"Coleco",   era:"Retro",    year:"1982", style:"Black cart, Coleco logo, arcade port cover art style" },
+      { id:"intellivision",name:"Intellivision",   maker:"Mattel",   era:"Retro",    year:"1979", style:"Illustrated painted box art, Mattel logo, board-game style layout" },
+    ]
+  },
+  {
+    id:"albums", label:"Album Covers", icon:"🎵",
+    note:"Style-inspired compositions",
+    templates:[
+      { id:"abbey",       name:"Abbey Road Style",      year:"1969", style:"Four figures crossing a zebra crossing, urban street, cinematic wide shot" },
+      { id:"nevermind",   name:"Nevermind Style",        year:"1991", style:"Underwater subject swimming toward a bait, subversive grunge aesthetic" },
+      { id:"thriller",    name:"Thriller Style",         year:"1982", style:"White suit, dark background, confident pose, dramatic spotlight" },
+      { id:"darkside",    name:"Dark Side Style",        year:"1973", style:"Prism rainbow light refraction on black, psychedelic concept art" },
+      { id:"sgtpepper",   name:"Sgt. Pepper Style",      year:"1967", style:"Collage crowd of figures, colorful military band uniforms, pop art" },
+      { id:"purple_rain", name:"Purple Rain Style",      year:"1984", style:"Purple tones, vehicle, dramatic smoke, regal purple palette" },
+      { id:"rumours",     name:"Rumours Style",          year:"1977", style:"Soft focus duo, intimate editorial, velvet & lace, warm tones" },
+      { id:"born_to_run", name:"Born to Run Style",      year:"1975", style:"Two musicians leaning together, casual street style, black & white" },
+    ]
+  },
+  {
+    id:"magazines", label:"Magazine Covers", icon:"📖",
+    presentationModes:["Cover","Spread"],
+    templates:[
+      { id:"time",         name:"TIME",                style:"Red border, bold serif headline, newsworthy gravitas, Person of the Year feel" },
+      { id:"rolling_stone",name:"Rolling Stone",       style:"Bold masthead, music icon portrait, editorial interview layout" },
+      { id:"vogue",        name:"Vogue",               style:"High fashion, elegant serif masthead, model portrait, seasonal color palette" },
+      { id:"natgeo",       name:"National Geographic", style:"Yellow border, nature photography, world explorer documentary feel" },
+      { id:"life_mag",     name:"LIFE",                style:"Classic photojournalism, red masthead, retro mid-century Americana" },
+      { id:"sports_illus", name:"Sports Illustrated",  style:"Athlete action shot, bold red typography, champion energy" },
+      { id:"wired",        name:"WIRED",               style:"Tech forward, monochrome + neon accent, cyberpunk editorial" },
+      { id:"people",       name:"People",              style:"Warm celebrity portrait, headline gossip energy, friendly and approachable" },
+    ]
+  },
+  {
+    id:"vintage", label:"Vintage Ads", icon:"📰",
+    templates:[
+      { id:"ww2",      name:"WWII Poster",          year:"1940s", style:"Bold propaganda colors, heroic pose, patriotic fonts, textured print look" },
+      { id:"fifties",  name:"1950s Product Ad",     year:"1950s", style:"Nuclear family, pastel colors, optimistic copy, clean serif fonts" },
+      { id:"sixties",  name:"Psychedelic 60s",      year:"1960s", style:"Swirling colors, peace symbol, hand-lettered type, flower power" },
+      { id:"seventies",name:"Groovy 70s",           year:"1970s", style:"Earth tones, funky type, disco energy, warm brown palette" },
+      { id:"wanted",   name:"Wild West Wanted",     year:"1880s", style:"Aged paper, woodblock type, silhouette portrait, REWARD bold headline" },
+      { id:"travel",   name:"Retro Travel Poster",  year:"1930s", style:"Streamline art deco, destination illustration, bold flat colors" },
+      { id:"soviet",   name:"Soviet Constructivist",year:"1920s", style:"Diagonal composition, red & black, bold geometric sans-serif, worker figures" },
+      { id:"pinup",    name:"Pin-Up Ad",            year:"1940s", style:"Illustrated glamour, warm skin tones, classic pin-up pose, product tagline" },
+    ]
+  },
+  {
+    id:"mashup", label:"Photo Mashup", icon:"✂️",
+    templates:[
+      { id:"face_swap",  name:"Face Swap",          style:"Replace a face in a famous photo or scene with the described subject" },
+      { id:"body_swap",  name:"Body Swap",          style:"Place the subject's face onto another body or character in a scene" },
+      { id:"scene_drop", name:"Scene Drop",         style:"Insert the subject naturally into a famous location or historical scene" },
+      { id:"collage",    name:"Collage",            style:"Blend multiple references into a surreal composite image" },
+      { id:"action",     name:"Action Shot",        style:"Place subject into a dramatic action scene — sport, chase, explosion" },
+      { id:"historical", name:"Historical Moment",  style:"Insert subject into a famous historical photograph moment" },
+    ]
+  },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let currentStep = 0;
+let activeCategoryId = "movies";
+let selectedTemplate = null;
+let brandFilter = "All";
+let presentationMode = "Standard";
+
+// ─── NAVIGATION ──────────────────────────────────────────────────────────────
+
+function goStep(n) {
+  if (n > currentStep) return; // only navigate back or to current
+  renderStep(n);
+}
+
+function renderStep(n) {
+  currentStep = n;
+  document.querySelectorAll('.screen').forEach((s, i) => {
+    s.classList.toggle('active', i === n);
+  });
+  document.querySelectorAll('.step-pill').forEach((p, i) => {
+    p.className = 'step-pill';
+    if (i < n) p.classList.add('done');
+    else if (i === n) p.classList.add('active');
+  });
+  if (n === 1) renderTemplateScreen();
+  if (n === 2) renderCustomizeScreen();
+  if (n === 3) renderPromptScreen();
+}
+
+function advanceStep() {
+  currentStep++;
+  renderStep(currentStep);
+}
+
+// ─── STEP 1: Templates ───────────────────────────────────────────────────────
+
+function renderTemplateScreen() {
+  renderCatTabs();
+  renderCategoryContent();
+}
+
+function renderCatTabs() {
+  const container = document.getElementById('catTabs');
+  container.innerHTML = CATEGORIES.map(cat => `
+    <button class="cat-tab${cat.id === activeCategoryId ? ' active' : ''}"
+      onclick="switchCategory('${cat.id}')">
+      ${cat.icon} ${cat.label}
+    </button>
+  `).join('');
+}
+
+function switchCategory(id) {
+  activeCategoryId = id;
+  selectedTemplate = null;
+  brandFilter = 'All';
+  presentationMode = 'Standard';
+  renderCatTabs();
+  renderCategoryContent();
+}
+
+function renderCategoryContent() {
+  const cat = CATEGORIES.find(c => c.id === activeCategoryId);
+
+  // Warning
+  const warnEl = document.getElementById('catWarning');
+  if (cat.note) { warnEl.textContent = '⚠️ ' + cat.note; warnEl.style.display = 'block'; }
+  else warnEl.style.display = 'none';
+
+  // Presentation modes
+  const pmodeEl = document.getElementById('pmodeRow');
+  if (cat.presentationModes) {
+    const modes = ['Standard', ...cat.presentationModes];
+    pmodeEl.innerHTML = modes.map(m => `
+      <button class="pmode-btn${presentationMode === m ? ' active' : ''}"
+        onclick="setPMode('${m}')">${m}</button>
+    `).join('');
+    pmodeEl.style.display = 'flex';
+  } else {
+    pmodeEl.style.display = 'none';
+  }
+
+  // Brand filter
+  const bfEl = document.getElementById('brandFilter');
+  if (cat.subCategories) {
+    const cats = ['All', ...cat.subCategories];
+    bfEl.innerHTML = cats.map(c => `
+      <button class="chip${brandFilter === c ? ' active' : ''}"
+        onclick="setBrandFilter('${c}')">${c}</button>
+    `).join('');
+    bfEl.style.display = 'flex';
+  } else {
+    bfEl.style.display = 'none';
+  }
+
+  // Templates
+  let templates = cat.templates;
+  if (cat.subCategories && brandFilter !== 'All') {
+    templates = templates.filter(t => t.cat === brandFilter);
+  }
+
+  const grid = document.getElementById('tmplGrid');
+  grid.innerHTML = templates.map(t => `
+    <div class="tmpl-card${selectedTemplate && selectedTemplate.id === t.id ? ' selected' : ''}"
+      onclick="selectTemplate('${t.id}')">
+      ${selectedTemplate && selectedTemplate.id === t.id ? '<div class="tmpl-check">✓</div>' : ''}
+      <div class="tmpl-icon">${cat.icon}</div>
+      <div class="tmpl-name">${t.name}</div>
+      <div class="tmpl-meta">${t.year || t.era || t.cat || ''}</div>
+    </div>
+  `).join('');
+
+  updateSelectedPreview();
+}
+
+function selectTemplate(id) {
+  const cat = CATEGORIES.find(c => c.id === activeCategoryId);
+  selectedTemplate = cat.templates.find(t => t.id === id);
+  renderCategoryContent();
+}
+
+function setPMode(m) {
+  presentationMode = m;
+  renderCategoryContent();
+}
+
+function setBrandFilter(f) {
+  brandFilter = f;
+  selectedTemplate = null;
+  renderCategoryContent();
+}
+
+function updateSelectedPreview() {
+  const el = document.getElementById('selectedPreview');
+  if (selectedTemplate) {
+    document.getElementById('previewName').textContent = 'SELECTED: ' + selectedTemplate.name;
+    document.getElementById('previewStyle').textContent = selectedTemplate.style;
+    el.style.display = 'block';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// ─── STEP 2: Customize ───────────────────────────────────────────────────────
+
+function renderCustomizeScreen() {
+  if (!selectedTemplate) return;
+  const cat = CATEGORIES.find(c => c.templates.find(t => t.id === selectedTemplate.id));
+  document.getElementById('customizeHeader').innerHTML = `
+    <span class="card-label">Template</span>
+    <div style="font-weight:700">${selectedTemplate.name}</div>
+    <div style="font-size:12px;color:#555;margin-top:2px">${selectedTemplate.style.slice(0,80)}…</div>
+  `;
+
+  const desc = document.getElementById('subjectDesc').value.trim();
+  const recap = document.getElementById('subjectRecap');
+  if (desc) {
+    document.getElementById('subjectRecapText').textContent = desc;
+    recap.style.display = 'block';
+  } else {
+    recap.style.display = 'none';
+  }
+}
+
+// ─── STEP 3: Prompt ──────────────────────────────────────────────────────────
+
+function generatePrompt() {
+  if (!selectedTemplate) { alert('Please select a template first.'); return; }
+
+  const subject = document.getElementById('subjectDesc').value.trim();
+  const name = document.getElementById('customName').value.trim();
+  const tagline = document.getElementById('customTagline').value.trim();
+  const subtitle = document.getElementById('customSubtitle').value.trim();
+  const intensity = parseInt(document.getElementById('styleIntensity').value);
+  const cat = CATEGORIES.find(c => c.templates.find(t => t.id === selectedTemplate.id));
+
+  const intensityWord = intensity >= 80 ? 'fully committed to' : intensity >= 50 ? 'clearly inspired by' : 'subtly referencing';
+  const modeStr = presentationMode !== 'Standard' ? `, presented as a ${presentationMode}` : '';
+  const nameStr = name ? `, featuring the name "${name}"` : '';
+  const tagStr = tagline ? `, with tagline: "${tagline}"` : '';
+  const subStr = subject ? `The main subject is: ${subject}. ` : '';
+  const subTitleStr = subtitle ? ` Subtitle/credit line: "${subtitle}".` : '';
+
+  const prompt = `Create a photorealistic image ${intensityWord} the visual style of a ${selectedTemplate.name} ${cat?.label?.toLowerCase() || 'template'}${modeStr}. ${subStr}Style reference: ${selectedTemplate.style}${nameStr}${tagStr}.${subTitleStr} High detail, professional composition, cinematic lighting. Do not reproduce copyrighted logos or exact trademarked text — use the visual style and color language only.`.trim();
+
+  document.getElementById('promptOutput').textContent = prompt;
+  renderAiTools();
+  advanceStep();
+}
+
+function renderAiTools() {
+  const freeEl = document.getElementById('freeAiList');
+  const paidEl = document.getElementById('paidAiList');
+
+  freeEl.innerHTML = AI_TOOLS.filter(t => t.free).map(t => `
+    <a class="ai-item" href="${t.url}" target="_blank" rel="noopener noreferrer">
+      <div class="ai-item-left">
+        <span class="ai-icon">${t.icon}</span>
+        <div>
+          <div class="ai-name">${t.name}</div>
+          <div class="ai-note free">${t.note}</div>
+        </div>
+      </div>
+      <span class="ai-arrow">→</span>
+    </a>
+  `).join('');
+
+  paidEl.innerHTML = AI_TOOLS.filter(t => !t.free).map(t => `
+    <a class="ai-item" href="${t.url}" target="_blank" rel="noopener noreferrer">
+      <div class="ai-item-left">
+        <span class="ai-icon">${t.icon}</span>
+        <div>
+          <div class="ai-name">${t.name}</div>
+          <div class="ai-note paid">${t.note}</div>
+        </div>
+      </div>
+      <span class="ai-arrow">→</span>
+    </a>
+  `).join('');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('promptOutput').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = '✓ Copied to clipboard!';
+    btn.className = 'btn btn-full btn-copied';
+    setTimeout(() => {
+      btn.textContent = '📋 Copy Prompt';
+      btn.className = 'btn btn-full btn-primary';
+    }, 2000);
+  });
+}
+
+function resetAll() {
+  selectedTemplate = null;
+  activeCategoryId = 'movies';
+  brandFilter = 'All';
+  presentationMode = 'Standard';
+  document.getElementById('subjectDesc').value = '';
+  document.getElementById('customName').value = '';
+  document.getElementById('customTagline').value = '';
+  document.getElementById('customSubtitle').value = '';
+  document.getElementById('styleIntensity').value = 80;
+  document.getElementById('intensityVal').textContent = '80%';
+  renderStep(0);
+}
+
+// Wire up "Pick a Template" step 1 nav — also allow forward from step 0
+document.querySelector('#screen-0 .btn').addEventListener('click', function() {
+  currentStep = 1;
+  renderStep(1);
+});
+</script>
+</body>
+</html>
